@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+set -eu
+
+config=""
+
+if [ -v GITENV ] ; then
+  root=$GITENV
+else
+  root=~/.gitenv
+fi
+
+main() {
+  local command
+
+  if [[ "$#" -eq 0 ]] ; then
+      command="--show"
+  fi
+  if [[ "$#" -ge 1 ]] ; then
+      command=$1
+  fi
+  if [[ "$#" -ge 2 ]] ; then
+      config=$2
+  fi
+  
+  case "$command" in
+    -s | --show   ) _show ;;
+    -l | --list   ) _list ;;
+    -c | --change ) _change ;;
+         --rm     ) _rm ;;
+    * ) _help ;;
+  esac
+}
+
+_help() {
+cat <<++EOS
+NAME:
+  gitenv - A .gitconfig switcher.
+
+OPTIONS:
+  -s, --show (default)
+    Display the current config.
+  -l, --list
+    List configs.
+  -c, --config CONFIG_NAME
+    Create a config and change to the config.
+  --rm CONFIG_NAME
+    Remove the config.
+  -h, --help
+    Display this help.
+++EOS
+}
+
+_show() {
+  if [[ ! -e $root/config ]] ; then
+    echo "There are no configs."
+    echo
+    _help
+    exit 9
+  fi
+  cat $root/config
+}
+
+_list() {
+  cd $root
+  ls -1 | fgrep -v config
+}
+
+_change() {
+  echo "swich to $config"
+  cd $HOME
+  __unlink .gitconfig
+  __link $root/$config/.gitconfig
+  echo $config > $root/config
+}
+
+_rm() {
+  if [[ "$config" = "" ]] ; then
+    _help
+    exit 9
+  fi
+  rm -fRv $root/$config
+}
+
+__link() {
+  mkdir -p $root/$config
+  touch $1
+  ln -s $1
+}
+
+__unlink() {
+  if [[ ! -e "$1" ]] ; then
+    return
+  fi
+  if [[ ! -L "$1" ]] ; then
+    echo $1 is not managed under gitenv.
+    exit 9
+  fi
+  if echo "$(readlink $1)" | grep -sv "$root" ; then
+    echo $1 is not managed under gitenv.
+    exit 9
+  fi
+  unlink $1
+}
+
+main $*
