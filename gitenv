@@ -3,12 +3,15 @@
 set -eu
 
 config=""
+config_dir=""
 
 if [ -v GITENV ] ; then
-  root=$GITENV
+  ROOT=$GITENV
 else
-  root=~/.gitenv
+  ROOT=~/.gitenv
 fi
+
+CONFIG_FILE=$ROOT/config
 
 main() {
   local command
@@ -21,6 +24,7 @@ main() {
   fi
   if [[ "$#" -ge 2 ]] ; then
       config=$2
+      config_dir=$ROOT/$config
   fi
   
   case "$command" in
@@ -52,7 +56,7 @@ OPTIONS:
 }
 
 _show() {
-  if [[ ! -e $root/config ]] ; then
+  if [[ ! -e $CONFIG_FILE ]] ; then
     echo "There are no configs."
     echo
     _help
@@ -62,7 +66,7 @@ _show() {
 }
 
 _list() {
-  cd $root
+  cd $ROOT
   ls -1 | fgrep -v config
 }
 
@@ -70,8 +74,9 @@ _change() {
   echo "swich to $config"
   cd $HOME
   __unlink .gitconfig
-  __link $root/$config/.gitconfig
-  echo $config > $root/config
+  mkdir -p $config_dir
+  __link $config_dir/.gitconfig
+  echo $config > $CONFIG_FILE
   _show
 }
 
@@ -84,15 +89,14 @@ _rm() {
     cd $HOME
     __unlink .gitconfig
   fi
-  rm -fRv $root/$config
+  rm -fRv $config_dir
 }
 
 __show_current_config() {
-  echo "$(cat $root/config)$*"
+  echo "$(cat $CONFIG_FILE)$*"
 }
 
 __link() {
-  mkdir -p $root/$config
   touch $1
   ln -s $1
 }
@@ -105,7 +109,7 @@ __unlink() {
     echo $1 is not managed under gitenv.
     exit 9
   fi
-  if echo "$(readlink $1)" | grep -sv "$root" ; then
+  if echo "$(readlink $1)" | grep -sv "$ROOT" ; then
     echo $1 is not managed under gitenv.
     exit 9
   fi
