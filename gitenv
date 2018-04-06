@@ -58,7 +58,7 @@ _show() {
     _help
     exit 9
   fi
-  cat $root/config
+  __show_current_config " ($(git config --get user.name))"
 }
 
 _list() {
@@ -72,6 +72,7 @@ _change() {
   __unlink .gitconfig
   __link $root/$config/.gitconfig
   echo $config > $root/config
+  _show
 }
 
 _rm() {
@@ -79,7 +80,15 @@ _rm() {
     _help
     exit 9
   fi
+  if [[ "$config" = "$(__show_current_config)" ]] ; then
+    cd $HOME
+    __unlink .gitconfig
+  fi
   rm -fRv $root/$config
+}
+
+__show_current_config() {
+  echo "$(cat $root/config)$*"
 }
 
 __link() {
